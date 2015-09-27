@@ -1,0 +1,80 @@
+---
+title: "Final"
+output: html_document
+---
+
+This is for the final project of practical machine learning coursera.
+
+The training data: 
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data: 
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+
+Reference:
+
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
+The paper claimed to use random forest, 10-cross-validation with bagging.
+
+First load libraries:
+```{r}
+library(ggplot2)
+library(reshape2)
+library(AppliedPredictiveModeling)
+library(caret)
+setwd("/Users/xiem1/Desktop/class/practical_machine_learning/")
+```
+
+Read in training data:
+```{r}
+trainingData<-read.csv("pml-training.csv",header = TRUE)
+## get the traning data with label
+trainingWLE<-trainingData[,setdiff(c(grep('accel',names(trainingData)),ncol(trainingData)),grep('var_',names(trainingData)))]
+
+### OK, testing here
+testingData<-read.csv("pml-testing.csv",header = TRUE)
+testingWLE<-testingData[,setdiff(c(grep('accel',names(testingData)),ncol(testingData)),grep('var_',names(testingData)))]
+
+
+```
+
+Let's see how data distributed
+
+```{r}
+trainingWLE_data<-subset(trainingWLE,select = -classe)
+summary(trainingWLE_data)
+```
+
+To see correlation between features:
+
+```{r, echo=FALSE}
+qplot(x=Var1, y=Var2, data=melt(cor(trainingWLE_data, use="p")), fill=value, geom="tile") +
+  scale_fill_gradient2(limits=c(-1, 1))
+```
+
+Conclude: there is no outstanding correlation between features.
+
+I will use 10 cross validation which is popular for this kind of research.
+
+```{r}
+set.seed(222)
+fitControl <- trainControl(method = "cv",number = 10)
+mod<-train(classe~. , method="rf",data=trainingWLE,trControl = fitControl)
+mod
+pred<-predict(mod,testingWLE)
+```
+
+My estimation is that my model accuracy will be 95.5% using mtry=2 with SD 4.59e-3.
+
+now here is my prediction
+
+```{r}
+pred<-predict(mod,testingWLE)
+finalResult<-data.frame(pred,testingWLE[,"problem_id"])
+finalResult
+```
+
